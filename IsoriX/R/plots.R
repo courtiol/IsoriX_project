@@ -210,6 +210,8 @@ plot.ISOSCAPE <- function(x,
     if (which == "disp_respVar") {
       stop("This variance term is no longer computed due to some change in IsoriX internal structure. It may come back in a future version of IsoriX if you need it. Just let us know!")
     }
+    ## ToDo: implement  equivalent to attr(toto, "predVar")*toto[,1]^2 + attr(toto, "residVar")
+    
     
     ## compute the colors
     colours <- .cut_and_color(var     = x$isoscapes[[which]], #@data@values,
