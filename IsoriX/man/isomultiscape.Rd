@@ -22,8 +22,8 @@ session and \var{FALSE} otherwise.}
 }
 \value{
 This function returns a \var{list} of class \var{isoscape}
-containing a set of all 8 raster layers mentioned above (all being of
-class \var{RasterLayer}), and the location of the sources as spatial points.
+containing a set of all 4 raster layers mentioned in the documentation of 
+\code{\link{isoscape}}, and the location of the sources as spatial points.
 }
 \description{
 This function is the counterpart of \code{\link{isoscape}} for the objects
