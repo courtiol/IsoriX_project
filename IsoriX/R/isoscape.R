@@ -391,17 +391,19 @@ summary.ISOSCAPE <- function(object, ...) {
 
 #' Compute predictions
 #' 
-#' This is an internal function directly called by other functions. It is used
-#' as a wrapper to \code{\link[spaMM]{predict.HLfit}}, to compute predictions
-#' based on the geostatistical models. Compared to the spaMM function, this 
-#' prediction function can handle rasters and split the prediction job into
-#' manageable chunks.
+#' This is an internal function that is called by other functions. It should not
+#' be called by the user. It is used as a wrapper to
+#' \code{\link[spaMM]{predict.HLfit}}, to compute predictions based on the
+#' geostatistical models. Compared to the spaMM function, this prediction
+#' function can handle rasters and split the prediction job into manageable
+#' chunks.
 #'
 #' @inheritParams isoscape
 #' @param model The model to use for the prediction
 #' @param list_var The argument for the input \code{variances} of \code{\link[spaMM]{predict.HLfit}}
 #'
 #' @return A list containing the processed output
+#' @export
 #'
 #' @examples
 #' 
