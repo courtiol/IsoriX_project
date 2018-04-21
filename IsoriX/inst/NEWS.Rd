@@ -60,6 +60,7 @@
       \item the function .Fisher_method now directly computes the exponential of the log pv if only one value is provided; this leads to much faster assignment in the case of a single observation
       \item a new internal function called compute_predictions now computes the predictions for other functions
       \item a new internal function called info_package provides some information about the amount of code and functions in the package
+      \item the file internalfunctions.R has been renamed zzz.R
     }
   }
   
