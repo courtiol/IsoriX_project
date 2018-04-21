@@ -147,14 +147,14 @@ isoscape <- function(raster, ## change as method?
       print("Predictions from the residual dispersion model in progress:")
     }
     
-    disp_pred <- .compute_predictions(raster = raster, model = isofit$disp_fit,
+    disp_pred <- compute_predictions(raster = raster, model = isofit$disp_fit,
                                       list_var = list(predVar = TRUE), verbose = verbose)
     
     if (verbose) {
       print("Predictions from the mean model in progress:")
     }
     
-    mean_pred <- .compute_predictions(raster = raster, model = isofit$mean_fit,
+    mean_pred <- compute_predictions(raster = raster, model = isofit$mean_fit,
                                       list_var = list(predVar = TRUE), verbose = verbose)
 
   })  ## end of system.time
@@ -419,13 +419,13 @@ summary.ISOSCAPE <- function(object, ...) {
 #' GermanFit <- isofit(data = GNIPDataDEagg,
 #'                     mean_model_fix = list(elev = TRUE, lat_abs = TRUE))
 #' 
-#' mean_pred <- .compute_predictions(raster = ElevRasterDE,
+#' mean_pred <- compute_predictions(raster = ElevRasterDE,
 #'                                 model = GermanFit$mean_fit,
 #'                                 list_var = list(predVar = TRUE))
 #'                                 
 #' lapply(mean_pred, head)
 #' 
-#' disp_pred <- .compute_predictions(raster = ElevRasterDE,
+#' disp_pred <- compute_predictions(raster = ElevRasterDE,
 #'                                  model = GermanFit$disp_fit,
 #'                                  list_var = list(respVar = TRUE))
 #'                                 
@@ -433,7 +433,7 @@ summary.ISOSCAPE <- function(object, ...) {
 #' }
 #' 
 #' 
-.compute_predictions <- function(raster, model, list_var, verbose = TRUE) {
+compute_predictions <- function(raster, model, list_var, verbose = TRUE) {
   
   ## we extract lat/long from all cells of the raster
   coord <- sp::coordinates(raster)

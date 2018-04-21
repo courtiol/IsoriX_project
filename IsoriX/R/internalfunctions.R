@@ -198,7 +198,7 @@
 #' number of lines of code no longer includes documentation and examples. This
 #' function is for development purpose only and is thus not exported.
 #'
-.info_package <- function() {
+info_package <- function() {
   print(paste("number of functions =", length(ls("package:IsoriX"))))
   if (requireNamespace("R.utils", quietly = TRUE)) {
     files <- dir(paste0(system.file(package = "IsoriX"), "/R/"))
