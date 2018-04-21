@@ -21,7 +21,7 @@ session and \var{FALSE} otherwise.}
 }
 \value{
 This function returns a \var{list} of class \var{ISOSCAPE} containing
-  a set of all 8 raster layers mentioned above (all being of class
+  a set of all 4 raster layers mentioned above (all being of class
   \var{RasterLayer}), and the location of the sources as spatial points.
 }
 \description{
@@ -34,11 +34,15 @@ System (GIS) if needed (see online tutorials).
 }
 \details{
 This function computes the predictions (\code{mean}), prediction variances
-(\code{mean_predVar}), residual variances (\code{mean_residVar}) and response
-variances (\code{mean_respVar}) for the isotopic values at a resolution equal
-to the one of the structural raster. It also computes the same information
-for the residual dispersion variance (\code{disp_pred}, \code{disp_predVar},
-\code{disp_residVar}, or \code{disp_respVar}).
+(\code{mean_predVar}) and residual variances (\code{mean_residVar}) for the
+isotopic values at a resolution equal to the one of the structural raster. It
+also computes the prediction variance for the residual dispersion variance
+(\code{disp_predVar}). The predictions for the residual dispersion fit are
+not provided because they are the same as \code{mean_residVar}. The residual
+variances for the residual dispersion fit are also not provided because they 
+are always equal to 2. The response variance is not computed as for the mean
+fit, it is simply equal to the sum of the prediction variance and of the
+residual variance. The plotting function performs such simple operation.
 
 The predictions of isotopic values across the landscape are performed by
 calling the function \code{\link[spaMM]{predict}} from the package
