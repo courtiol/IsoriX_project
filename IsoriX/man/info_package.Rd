@@ -6,6 +6,9 @@
 \usage{
 info_package()
 }
+\value{
+This function returns nothing.
+}
 \description{
 This function provides the number of functions and lines of code of the
 package. The results depend on whether the function is called from within the
@@ -13,4 +16,8 @@ compiled or the raw package. When called from the compiled package, the
 number of functions only gives the number of exported functions, and the
 number of lines of code no longer includes documentation and examples. This
 function is for development purpose only and is thus not exported.
+}
+\examples{
+info_package()
+
 }
