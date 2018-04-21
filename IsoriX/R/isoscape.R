@@ -8,11 +8,15 @@
 #' System (GIS) if needed (see online tutorials).
 #'
 #' This function computes the predictions (\code{mean}), prediction variances
-#' (\code{mean_predVar}), residual variances (\code{mean_residVar}) and response
-#' variances (\code{mean_respVar}) for the isotopic values at a resolution equal
-#' to the one of the structural raster. It also computes the same information
-#' for the residual dispersion variance (\code{disp_pred}, \code{disp_predVar},
-#' \code{disp_residVar}, or \code{disp_respVar}).
+#' (\code{mean_predVar}) and residual variances (\code{mean_residVar}) for the
+#' isotopic values at a resolution equal to the one of the structural raster. It
+#' also computes the prediction variance for the residual dispersion variance
+#' (\code{disp_predVar}). The predictions for the residual dispersion fit are
+#' not provided because they are the same as \code{mean_residVar}. The residual
+#' variances for the residual dispersion fit are also not provided because they 
+#' are always equal to 2. The response variance is not computed as for the mean
+#' fit, it is simply equal to the sum of the prediction variance and of the
+#' residual variance. The plotting function performs such simple operation.
 #'
 #' The predictions of isotopic values across the landscape are performed by
 #' calling the function \code{\link[spaMM]{predict}} from the package
@@ -52,7 +56,7 @@
 #'   running. By default verbose is \var{TRUE} if users use an interactive R
 #'   session and \var{FALSE} otherwise.
 #' @return This function returns a \var{list} of class \var{ISOSCAPE} containing
-#'   a set of all 8 raster layers mentioned above (all being of class
+#'   a set of all 4 raster layers mentioned above (all being of class
 #'   \var{RasterLayer}), and the location of the sources as spatial points.
 #' @seealso \code{\link{isofit}} for the function fitting the isoscape
 #'
@@ -139,116 +143,42 @@ isoscape <- function(raster, ## change as method?
   
   time <- system.time({
     
-    ## we extract lat/long from all cells of the raster
-    coord <- sp::coordinates(raster)
-    long_to_do <- coord[, 1]  # extract the longitude
-    lat_to_do <-  coord[, 2]  # extract the lattitude
-    rm(coord); gc()  ## remove coord as it can be a large object
-    
-    ## size of chunks to split the job into smaller ones
-    chunk_size_for_predict <- 1000L
-    
-    ## indexes of beginning of each chunk (- 1) and of last position are being computed
-    steps <- unique(c(seq(from = 0L, to = length(long_to_do), by = chunk_size_for_predict),
-                      length(long_to_do)))
-    
-    ## a logical indicating if a progression bar must be used
-    draw_pb <- verbose & (length(steps) - 1) > 2
-    
-    ## create empty vectors to store predictions
-    mean_pred <- disp_pred <- rep(NA, length(long_to_do))
-    mean_predVar <- mean_residVar <- mean_respVar <- mean_pred
-    disp_predVar <- disp_residVar <- disp_respVar <- disp_pred
-    
-    ## initiate the progress bar
-    if (draw_pb) {
-      pb <- utils::txtProgressBar(style = 3)
+    if (verbose) {
+      print("Predictions from the residual dispersion model in progress:")
     }
     
-    ## we loop on each chunk
-    for (i in 1:(length(steps) - 1)) {
-
-      ## compute indexes for covariate values matching the current chunk
-      within_steps <-  (steps[i] + 1L):steps[i + 1L] 
-      
-      ## select coordinates for prediction within chunk
-      long <- long_to_do[within_steps]
-      lat <- lat_to_do[within_steps]
-      
-      ## we build xs non-specifically using most complex model definition
-      ## (it may look ugly but it should not increase much the computation time
-      ## and it avoids a lot of uglier code)
-      xs <- data.frame(long = long,
-                       long_2 = long^2,
-                       lat = lat,
-                       lat_abs = abs(lat),
-                       lat_2 = lat^2,
-                       elev = raster::extract(raster, cbind(long, lat)),  ## ToDo: check that it is elev and not something else
-                       source_ID = as.factor(paste("new", within_steps, sep = "_"))
-      )
-      
-      ## predictions from disp_fit
-      pred_dispfit <- spaMM::predict.HLfit(object = isofit$disp_fit,
-                                            newdata = xs,
-                                            variances = list(respVar = TRUE)
-      )
-      
-      ## transmission of phi to mean_fit
-      xs$pred_disp <- pred_dispfit[, 1]
-      
-      ## predictions from mean_fit
-      pred_meanfit <- spaMM::predict.HLfit(object = isofit$mean_fit,
-                                           newdata = xs,
-                                           variances = list(respVar = TRUE)
-      )
-      
-      ## we save the predictions
-      mean_pred[within_steps] <- pred_meanfit[, 1]
-      mean_predVar[within_steps]  <- attr(pred_meanfit, "predVar")
-      mean_residVar[within_steps] <- attr(pred_meanfit, "residVar") ## same as disp_pred (as it should be)
-      mean_respVar[within_steps]  <- attr(pred_meanfit, "respVar")
-      
-      disp_pred[within_steps] <- pred_dispfit[, 1]
-      disp_predVar[within_steps]  <- attr(pred_dispfit, "predVar")  ## same as mean_residVar (as it should be)
-      disp_residVar[within_steps] <- attr(pred_dispfit, "residVar")  
-      disp_respVar[within_steps]  <- attr(pred_dispfit, "respVar")
-      
-      if (draw_pb) {
-        utils::setTxtProgressBar(pb, steps[i + 1L]/length(lat_to_do)) ## update progress bar
-      }
-      
-    }  ## we leave the loop on chunks
+    disp_pred <- .compute_predictions(raster = raster, model = isofit$disp_fit,
+                                      list_var = list(predVar = TRUE), verbose = verbose)
     
-    ## the progress bar is being closed
-    if (draw_pb) close(pb)
+    if (verbose) {
+      print("Predictions from the mean model in progress:")
+    }
+    
+    mean_pred <- .compute_predictions(raster = raster, model = isofit$mean_fit,
+                                      list_var = list(predVar = TRUE), verbose = verbose)
+
   })  ## end of system.time
   
   ## display time
   time <- round(as.numeric((time)[3]))
   if (verbose) {
-    print(paste("predictions for all", length(long_to_do),
+    print(paste("predictions for all", length(mean_pred$long),
                 "locations have been computed in", time, "sec."), quote = FALSE)
   }
   
   ## we store the predictions for mean isotopic values into a raster
   save_raster <- function(x){
-    .create_raster(long = long_to_do,
-                  lat = lat_to_do,
+    .create_raster(long = mean_pred$long,
+                  lat = mean_pred$lat,
                   values = x,
                   proj = "+proj=longlat +datum=WGS84"
     )
   }
   
-  mean_raster <- save_raster(mean_pred)
-  mean_predVar_raster <- save_raster(mean_predVar)
-  mean_residVar_raster <- save_raster(mean_residVar)
-  mean_respVar_raster <- save_raster(mean_respVar)
-
-  disp_raster <- save_raster(disp_pred)
-  disp_predVar_raster <- save_raster(disp_predVar)
-  disp_residVar_raster <- save_raster(disp_residVar)
-  disp_respVar_raster <- save_raster(disp_respVar)
-  
+  mean_raster <- save_raster(mean_pred$pred_v)
+  mean_predVar_raster  <- save_raster(mean_pred$predVar_v)
+  mean_residVar_raster <- save_raster(disp_pred$pred_v)
+  disp_predVar_raster  <- save_raster(disp_pred$predVar_v)
   
   ## we create the spatial points for sources
   source_points  <- .create_spatial_points(long = isofit$mean_fit$data$long,
@@ -260,11 +190,7 @@ isoscape <- function(raster, ## change as method?
   isoscapes <- raster::brick(list("mean" = mean_raster,
                                  "mean_predVar" = mean_predVar_raster,
                                  "mean_residVar" = mean_residVar_raster,
-                                 "mean_respVar" = mean_respVar_raster,
-                                 "disp" = disp_raster,
-                                 "disp_predVar" = disp_predVar_raster,
-                                 "disp_residVar" = disp_residVar_raster,
-                                 "disp_respVar" = disp_respVar_raster
+                                 "disp_predVar" = disp_predVar_raster
   )
   )
   
@@ -280,129 +206,6 @@ isoscape <- function(raster, ## change as method?
   return(out)
 }
 
-.futureisoscape <- function(raster, ## change as method?
-                            isofit,
-                            verbose = interactive()) {
-  # Predicts the spatial distribution of isotopic values
-  # 
-  # This function is an alternative implementation of isoscape().
-  # It is not exported but may be put in use in a future version of IsoriX.
-  # It does not compute the predictions into chunks.
-    
-  if (any(class(isofit) %in% "MULTIISOFIT")) {
-    stop("object 'isofit' of class MULTIISOFIT; use isomultiscape instead.")
-  }
-  
-  if (verbose) {
-    print("Building the isoscapes... ", quote = FALSE)
-    print("(this may take a while)", quote = FALSE)
-  }
-  
-  if (isofit$mean_fit$spaMM.version != utils::packageVersion(pkg = "spaMM")) {
-    warning("The isofit has been fitted on a different version of spaMM than the one called by IsoriX. This may create troubles in paradize...")
-  }
-  
-  time <- system.time({
-    
-    ## we extract lat/long from all cells of the raster
-    coord <- sp::coordinates(raster)
-    
-    ## we create the object for newdata
-    xs <- data.frame(long = coord[, 1],
-                     long_2 = coord[, 1]^2,
-                     lat = coord[, 2],
-                     lat_abs = abs(coord[, 2]),
-                     lat_2 = coord[, 2]^2,
-                     elev = raster::extract(raster, coord), ## ToDo: check that it is elev
-                     source_ID = as.factor(paste("new", 1:nrow(coord), sep = "_"))
-    )
-
-    rm(coord); gc()  ## remove coord as it can be a large object
-  
-    pred_dispfit <- spaMM::predict.HLfit(object = isofit$disp_fit,
-                                         newdata = xs,
-                                         variances = list(respVar = TRUE),
-                                         blockSize = 16000L
-    )
-    
-    ## transmission of phi to mean_fit
-    xs$pred_disp <- pred_dispfit[, 1]
-    
-    ## predictions from mean_fit
-    pred_meanfit <- spaMM::predict.HLfit(object = isofit$mean_fit,
-                                         newdata = xs,
-                                         variances = list(respVar = TRUE),
-                                         blockSize = 16000L
-    )
-    
-    mean_pred <- pred_meanfit[, 1]
-    mean_predVar  <- attr(pred_meanfit, "predVar")
-    mean_residVar <- attr(pred_meanfit, "residVar") ## same as disp_pred (as it should be)
-    mean_respVar  <- attr(pred_meanfit, "respVar")
-    
-    disp_pred <- pred_dispfit[, 1]
-    disp_predVar  <- attr(pred_dispfit, "predVar")  ## same as mean_residVar (as it should be)
-    disp_residVar <- attr(pred_dispfit, "residVar")  
-    disp_respVar  <- attr(pred_dispfit, "respVar")
-  })  ## end of system.time
-  
-  ## display time
-  time <- round(as.numeric((time)[3]))
-  if (verbose) {
-    print(paste("predictions for all", nrow(xs),
-                "locations have been computed in", time, "sec."), quote = FALSE)
-  }
-  
-  ## we store the predictions for mean isotopic values into a raster
-  save_raster <- function(x){
-    .create_raster(long = xs$long,
-                   lat = xs$lat,
-                   values = x,
-                   proj = "+proj=longlat +datum=WGS84"
-    )
-  }
-  
-  mean_raster <- save_raster(mean_pred)
-  mean_predVar_raster <- save_raster(mean_predVar)
-  mean_residVar_raster <- save_raster(mean_residVar)
-  mean_respVar_raster <- save_raster(mean_respVar)
-  
-  disp_raster <- save_raster(disp_pred)
-  disp_predVar_raster <- save_raster(disp_predVar)
-  disp_residVar_raster <- save_raster(disp_residVar)
-  disp_respVar_raster <- save_raster(disp_respVar)
-  
-  
-  ## we create the spatial points for sources
-  source_points  <- .create_spatial_points(long = isofit$mean_fit$data$long,
-                                           lat = isofit$mean_fit$data$lat,
-                                           proj = "+proj=longlat +datum=WGS84"
-  )
-  
-  ## we put all rasters in a brick
-  isoscapes <- raster::brick(list("mean" = mean_raster,
-                                 "mean_predVar" = mean_predVar_raster,
-                                 "mean_residVar" = mean_residVar_raster,
-                                 "mean_respVar" = mean_respVar_raster,
-                                 "disp" = disp_raster,
-                                 "disp_predVar" = disp_predVar_raster,
-                                 "disp_residVar" = disp_residVar_raster,
-                                 "disp_respVar" = disp_respVar_raster
-  )
-  )
-  
-  ## we put the brick in a list that also contains
-  ## the spatial points for the sources
-  out <- list(isoscapes = isoscapes,
-              sp_points = list(sources = source_points)
-  )
-  
-  ## we define a new class
-  class(out) <- c("ISOCAPE", "list")
-  return(out)
-}
-
-
 
 #' Predicts the average spatial distribution of isotopic values over months,
 #' years...
@@ -417,8 +220,9 @@ isoscape <- function(raster, ## change as method?
 #' @inheritParams isoscape
 #' @param weighting An optional RasterBrick containing the weights
 #' @return This function returns a \var{list} of class \var{isoscape}
-#' containing a set of all 8 raster layers mentioned above (all being of
-#' class \var{RasterLayer}), and the location of the sources as spatial points.
+#' containing a set of all 4 raster layers mentioned in the documentation of 
+#' \code{\link{isoscape}}, and the location of the sources as spatial points.
+#' 
 #' @seealso
 #' 
 #' \code{\link{isoscape}} for details on the function used to compute the isoscapes for each strata
@@ -526,14 +330,10 @@ isomultiscape <- function(raster, ## change as method?
   brick_mean <- raster::brick(lapply(isoscapes, function(iso) iso$isoscapes$mean))
   brick_mean_predVar <- raster::brick(lapply(isoscapes, function(iso) iso$isoscapes$mean_predVar))
   brick_mean_residVar <- raster::brick(lapply(isoscapes, function(iso) iso$isoscapes$mean_residVar))
-  brick_mean_respVar <- raster::brick(lapply(isoscapes, function(iso) iso$isoscapes$mean_respVar))
 
   ## Combining disp isoscapes into RasterBricks
-  brick_disp <- raster::brick(lapply(isoscapes, function(iso) iso$isoscapes$disp))
   brick_disp_predVar <- raster::brick(lapply(isoscapes, function(iso) iso$isoscapes$disp_predVar))
-  brick_disp_residVar <- raster::brick(lapply(isoscapes, function(iso) iso$isoscapes$disp_residVar))
-  brick_disp_respVar <- raster::brick(lapply(isoscapes, function(iso) iso$isoscapes$disp_respVar))
-  
+
   ## Compute the weights
   if (is.null(weighting)) {
     weights <- raster::raster(raster)
@@ -546,11 +346,7 @@ isomultiscape <- function(raster, ## change as method?
   multiscape <- raster::brick(list("mean" = sum(brick_mean * weights),
                                  "mean_predVar" = sum(brick_mean_predVar * weights^2),
                                  "mean_residVar" = sum(brick_mean_residVar * weights^2),
-                                 "mean_respVar" = sum(brick_mean_respVar * weights^2),
-                                 "disp" = sum(brick_disp * weights),
-                                 "disp_predVar" = sum(brick_disp_predVar * weights^2),
-                                 "disp_residVar" = sum(brick_disp_residVar * weights^2),
-                                 "disp_respVar" = sum(brick_disp_respVar * weights^2)
+                                 "disp_predVar" = sum(brick_disp_predVar * weights^2)
                                 )
                             )
   
@@ -591,4 +387,148 @@ summary.ISOSCAPE <- function(object, ...) {
   }
   return(invisible(NULL))
 }
+
+
+#' Compute predictions
+#' 
+#' This is an internal function directly called by other functions. It is used
+#' as a wrapper to \code{\link[spaMM]{predict.HLfit}}, to compute predictions
+#' based on the geostatistical models. Compared to the spaMM function, this 
+#' prediction function can handle rasters and split the prediction job into
+#' manageable chunks.
+#'
+#' @inheritParams isoscape
+#' @param model The model to use for the prediction
+#' @param list_var The argument for the input \code{variances} of \code{\link[spaMM]{predict.HLfit}}
+#'
+#' @return A list containing the processed output
+#'
+#' @examples
+#' 
+#' ## The examples below will only be run if sufficient time is allowed
+#' ## You can change that by typing e.g. options_IsoriX(example_maxtime = XX)
+#' ## if you want to allow for examples taking up to ca. XX seconds to run
+#' ## (so don't write XX but put a number instead!)
+#' 
+#' if(getOption_IsoriX("example_maxtime") > 10) {
+#' 
+#' ## We prepare the data
+#' GNIPDataDEagg <- prepsources(data = GNIPDataDE)
+#' 
+#' ## We fit the models
+#' GermanFit <- isofit(data = GNIPDataDEagg,
+#'                     mean_model_fix = list(elev = TRUE, lat_abs = TRUE))
+#' 
+#' mean_pred <- .compute_predictions(raster = ElevRasterDE,
+#'                                 model = GermanFit$mean_fit,
+#'                                 list_var = list(predVar = TRUE))
+#'                                 
+#' lapply(mean_pred, head)
+#' 
+#' disp_pred <- .compute_predictions(raster = ElevRasterDE,
+#'                                  model = GermanFit$disp_fit,
+#'                                  list_var = list(respVar = TRUE))
+#'                                 
+#' lapply(disp_pred, head)
+#' }
+#' 
+#' 
+.compute_predictions <- function(raster, model, list_var, verbose = TRUE) {
+  
+  ## we extract lat/long from all cells of the raster
+  coord <- sp::coordinates(raster)
+  long_to_do <- coord[, 1]  # extract the longitude
+  lat_to_do <-  coord[, 2]  # extract the lattitude
+  rm(coord); gc()  ## remove coord as it can be a large object
+  
+  ## size of chunks to split the job into smaller ones
+  chunk_size_for_predict <- 1000L
+  
+  ## indexes of beginning of each chunk (- 1) and of last position are being computed
+  steps <- unique(c(seq(from = 0L, to = length(long_to_do), by = chunk_size_for_predict),
+                    length(long_to_do)))
+  
+  ## create empty vectors to store predictions
+  pred_v <- rep(NA, length(long_to_do))
+  
+  if ("predVar" %in% names(list_var) | "respVar" %in% names(list_var)) {
+    predVar_v <- pred_v
+  } else predVar_v <- NULL
+  
+  if ("residVar" %in% names(list_var) | "respVar" %in% names(list_var)) {
+    residVar_v <- pred_v
+  } else residVar_v <- NULL
+  
+  if ("respVar" %in% names(list_var)) {
+    respVar_v <- pred_v
+  } else respVar_v <- NULL
+  
+  ## a logical indicating if a progression bar must be used
+  draw_pb <- verbose & (length(steps) - 1) > 2
+  
+  ## initiate the progress bar
+  if (draw_pb) {
+    pb <- utils::txtProgressBar(style = 3)
+  }
+  
+  ## we loop on each chunk
+  for (i in 1:(length(steps) - 1)) {
+    
+    ## compute indexes for covariate values matching the current chunk
+    within_steps <-  (steps[i] + 1L):steps[i + 1L] 
+    
+    ## select coordinates for prediction within chunk
+    long <- long_to_do[within_steps]
+    lat <- lat_to_do[within_steps]
+    
+    ## we build xs non-specifically using most complex model definition
+    ## (it may look ugly but it should not increase much the computation time
+    ## and it avoids a lot of uglier code)
+    xs <- data.frame(long = long,
+                     long_2 = long^2,
+                     lat = lat,
+                     lat_abs = abs(lat),
+                     lat_2 = lat^2,
+                     elev = raster::extract(raster, cbind(long, lat)),  ## ToDo: check that it is elev and not something else
+                     source_ID = as.factor(paste("new", within_steps, sep = "_"))
+    )
+    
+    ## predictions from disp_fit
+    predictions <- spaMM::predict.HLfit(object = model,
+                                        newdata = xs,
+                                        variances = list_var
+    )
+  
+    ## we save the predictions
+    pred_v[within_steps] <- predictions[, 1]
+    
+    if ("predVar" %in% names(list_var) | "respVar" %in% names(list_var)) {
+      predVar_v[within_steps]  <- attr(predictions, "predVar")
+    }
+    
+    if ("residVar" %in% names(list_var) | "respVar" %in% names(list_var)) {
+      residVar_v[within_steps] <- attr(predictions, "residVar")
+    }
+    
+    if ("respVar" %in% names(list_var)) {
+      respVar_v[within_steps]  <- attr(predictions, "respVar")
+    }
+
+    if (draw_pb) {
+      utils::setTxtProgressBar(pb, steps[i + 1L]/length(lat_to_do)) ## update progress bar
+    }
+    
+  }  ## we leave the loop on chunks
+  
+  ## the progress bar is being closed
+  if (draw_pb) close(pb)
+    
+  return(list(long = long_to_do,
+              lat = lat_to_do,
+              pred_v = pred_v,
+              predVar_v = predVar_v,
+              residVar_v = residVar_v,
+              respVar_v = respVar_v))
+}
+
 
