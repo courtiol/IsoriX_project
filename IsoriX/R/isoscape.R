@@ -401,6 +401,11 @@ summary.ISOSCAPE <- function(object, ...) {
 #' @inheritParams isoscape
 #' @param model The model to use for the prediction
 #' @param list_var The argument for the input \code{variances} of \code{\link[spaMM]{predict.HLfit}}
+#' @param long_candidates The longitudes for which to compute the prediction (all those in raster if NULL)
+#' @param lat_candidates The latitudes for which to compute the prediction (all those in raster if NULL)
+#' @param long_calibs The longitudes of the calibration locations (for computing a specific covariance)
+#' @param lat_calibs The latitudes of the calibration locations (for computing a specific covariance)
+#' 
 #'
 #' @return A list containing the processed output
 #' @export
@@ -432,16 +437,37 @@ summary.ISOSCAPE <- function(object, ...) {
 #'                                  list_var = list(respVar = TRUE))
 #'                                 
 #' lapply(disp_pred, head)
+#' 
+#' cov <- compute_predictions(raster = ElevRasterDE,
+#'                            model = GermanFit$mean_fit,
+#'                            list_var = list(predVar = TRUE, cov = TRUE),
+#'                            long_calibs = unique(CalibDataAlien$long)[1:10],
+#'                            lat_calibs = unique(CalibDataAlien$lat)[1:10])
 #' }
 #' 
 #' 
-compute_predictions <- function(raster, model, list_var, verbose = TRUE) {
+compute_predictions <- function(raster, model, list_var, long_candidates = NULL, lat_candidates = NULL, long_calibs = NULL, lat_calibs = NULL, verbose = TRUE) {
   
-  ## we extract lat/long from all cells of the raster
-  coord <- sp::coordinates(raster)
-  long_to_do <- coord[, 1]  # extract the longitude
-  lat_to_do <-  coord[, 2]  # extract the lattitude
-  rm(coord); gc()  ## remove coord as it can be a large object
+  ## we prepare the lat/long for which to compute the predictions
+  if (is.null(long_candidates) | is.null(lat_candidates)) {
+    coord <- sp::coordinates(raster)
+  }
+  
+  if (is.null(long_candidates)) {
+    long_to_do <- coord[, 1]  # extract the longitude
+  } else {
+    long_to_do <- long_candidates
+  }
+  
+  if (is.null(lat_candidates)) {
+    lat_to_do <- coord[, 2]  # extract the lattitude
+  } else {
+    lat_to_do <- lat_candidates
+  }
+  
+  if (is.null(long_candidates) | is.null(lat_candidates)) {
+    rm(coord); gc()  ## remove coord as it can be a large object
+  }
   
   ## size of chunks to split the job into smaller ones
   chunk_size_for_predict <- 1000L
@@ -465,6 +491,14 @@ compute_predictions <- function(raster, model, list_var, verbose = TRUE) {
     respVar_v <- pred_v
   } else respVar_v <- NULL
   
+  ## create empty matrix to store covariances
+  if ("cov" %in% names(list_var)) {
+    if (is.null(long_calibs) & is.null(lat_calibs)) {
+      stop("The covariance terms computation requires the vector long_calibs and lat_calibs.")
+    }
+    cov_M <- matrix(NA, ncol = length(long_to_do), nrow = length(long_calibs))
+  } else cov_M <- NULL
+  
   ## a logical indicating if a progression bar must be used
   draw_pb <- verbose & (length(steps) - 1) > 2
   
@@ -482,6 +516,10 @@ compute_predictions <- function(raster, model, list_var, verbose = TRUE) {
     ## select coordinates for prediction within chunk
     long <- long_to_do[within_steps]
     lat <- lat_to_do[within_steps]
+    if (!is.null(cov_M)) {
+      long <- c(long_calibs, long)
+      lat  <- c(lat_calibs, lat)
+    }
     
     ## we build xs non-specifically using most complex model definition
     ## (it may look ugly but it should not increase much the computation time
@@ -492,7 +530,7 @@ compute_predictions <- function(raster, model, list_var, verbose = TRUE) {
                      lat_abs = abs(lat),
                      lat_2 = lat^2,
                      elev = raster::extract(raster, cbind(long, lat)),  ## ToDo: check that it is elev and not something else
-                     source_ID = as.factor(paste("new", within_steps, sep = "_"))
+                     source_ID = "new"
     )
     
     ## predictions from disp_fit
@@ -502,18 +540,23 @@ compute_predictions <- function(raster, model, list_var, verbose = TRUE) {
     )
   
     ## we save the predictions
-    pred_v[within_steps] <- predictions[, 1]
-    
-    if ("predVar" %in% names(list_var) | "respVar" %in% names(list_var)) {
-      predVar_v[within_steps]  <- attr(predictions, "predVar")
-    }
-    
-    if ("residVar" %in% names(list_var) | "respVar" %in% names(list_var)) {
-      residVar_v[within_steps] <- attr(predictions, "residVar")
-    }
-    
-    if ("respVar" %in% names(list_var)) {
-      respVar_v[within_steps]  <- attr(predictions, "respVar")
+    if (is.null(cov_M)) {
+      pred_v[within_steps] <- predictions[, 1]
+      
+      if ("predVar" %in% names(list_var) | "respVar" %in% names(list_var)) {
+        predVar_v[within_steps]  <- attr(predictions, "predVar")
+      }
+      
+      if ("residVar" %in% names(list_var) | "respVar" %in% names(list_var)) {
+        residVar_v[within_steps] <- attr(predictions, "residVar")
+      }
+      
+      if ("respVar" %in% names(list_var)) {
+        respVar_v[within_steps] <- attr(predictions, "respVar")
+      }
+    } else {
+      COV <- attr(predictions, "predVar")
+      cov_M[, within_steps] <- COV[1:length(long_calibs), (length(long_calibs) + 1):ncol(COV)]
     }
 
     if (draw_pb) {
@@ -524,6 +567,11 @@ compute_predictions <- function(raster, model, list_var, verbose = TRUE) {
   
   ## the progress bar is being closed
   if (draw_pb) close(pb)
+  
+  ## return the covariance matrix if asked for
+  if (!is.null(cov_M)) {
+    return(cov_M)
+  }
     
   return(list(long = long_to_do,
               lat = lat_to_do,

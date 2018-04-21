@@ -17,6 +17,9 @@
 #' method (Fisher 1925). Significant p-values are strong evidence that the
 #' sample do NOT come from the candidate location (and not the opposite!).
 #' 
+#' If \code{isofit} and \code{raster} are not provided, the variance of the test 
+#' statistic will omit the computation of a covariance term.
+#' 
 #' A mask can be used so to remove all values falling in the mask. This can be
 #' useful for performing for example assignments on lands only and discard
 #' anything falling in large bodies of water (see example). By default our
@@ -24,18 +27,18 @@
 #' to prevent this automatic behaviour.
 #' 
 #' @aliases isofind print.ISOFIND summary.ISOFIND
+#' @inheritParams isoscape
 #' @param data A \var{dataframe} containing the assignment data (see
 #' note below)
 #' @param isoscape The output of the function \code{\link{isoscape}}
+#' @param isofit The output of the function \code{\link{isofit}} (This 
+#' argument is needed to compute the covariance of predictions between the
+#' calibration locations and the candidate locations of the assignment.)
 #' @param calibfit The output of the function \code{\link{calibfit}} (This 
 #' argument is not needed if the isoscape had been fitted using isotopic 
 #' ratios from sedentary animals.)
 #' @param mask A \var{SpatialPolygons} of a mask to replace values on all
 #' rasters by NA inside polygons (see details)
-#' @param verbose A \var{logical} indicating whether information about the
-#' progress of the procedure should be displayed or not while the function is
-#' running. By default verbose is \var{TRUE} if users use an interactive R
-#' session and \var{FALSE} otherwise.
 #' @return This function returns a \var{list} of class \var{ISOFIND} containing
 #' itself three lists (\code{sample}, \code{group}, and \code{sp_points})
 #' storing all rasters built during assignment and the spatial points for
@@ -86,6 +89,8 @@
 #' Assignment <- isofind(data = AssignDataAlien,
 #'                       isoscape = GermanScape,
 #'                       calibfit = CalibAlien,
+#'                       isofit = GermanFit,
+#'                       raster = ElevRasterDE,
 #'                       mask = NULL)
 #' 
 #' ## We plot the group assignment
@@ -130,6 +135,8 @@
 isofind <- function(data,
                     isoscape,
                     calibfit = NULL,
+                    isofit = NULL,
+                    raster = NULL,
                     mask = NA,
                     verbose = interactive()
                     ) {
@@ -191,16 +198,59 @@ calibfit!")
     ### WE COMPUTE THE VARIANCE OF THE TEST
 
     if (!is.null(calibfit)) {
-      ## we compute fixedVar
+      ## compute the first term of the variance (a raster)
+      var1 <-  isoscape$isoscapes$mean_predVar
+      
+      ## compute the second term of the variance (one value)
+      var2 <- calibfit$phi/calibfit$param[["slope"]]^2
+      
+      ## compute the third term of the variance (a vector of length nrow(data))
       X <- cbind(1, data$mean_origin)
       fixedVar <- rowSums(X * (X %*% calibfit$fixefCov)) ## = diag(X %*% calibfit$fixefCov %*% t(X))
-      ## we create individual rasters containing the variance of the test statistics
+      var3 <- fixedVar/calibfit$param[["slope"]]^2
+      
+      ## compute the forth term of the variance; it is itself the product of 3 terms:
+      var4 <- 0
+      
+      if (!is.null(isofit) & !is.null(raster)) {
+      var4a <- -calibfit$param[["slope"]]  ## negative beta
+      
+      ad_hoc_LSmatrix_from_calibfit <- function(object) {
+        ww <- c(object$w.resid, object$w.ranef)
+        sqrt.ww <- sqrt(ww)
+        XX <- cbind(1, object$data$mean_source_value)
+        pforpv <- ncol(XX)
+        nrd <- length(object$w.ranef)
+        nobs <- nrow(object$X.pv)
+        ZAL <- spaMM::get_ZALMatrix(object)
+        augX <- methods::cbind2(methods::rbind2(XX, matrix(0, nrow = nrd, 
+                                         ncol = pforpv)), methods::rbind2(ZAL, diag(nrow = nrd)))
+        wAugX <- spaMM:::.calc_wAugX(augX = augX, sqrt.ww = sqrt.ww)
+        Matrix::solve(Matrix::crossprod(wAugX)) %*% Matrix::crossprod(wAugX, diag(sqrt.ww))
+      }
+      
+      var4b <- as.matrix(ad_hoc_LSmatrix_from_calibfit(calibfit$calib_fit)) ##spaMM:::.get_LSmatrix(calibfit$calib_fit) does not work yet because of the offset which makes spaMM not count parameters correctly
+
+      if (verbose) {
+        print("computation of the covariance of mean model predictions at calibration locations and at candidate locations...")
+      }
+      var4c <- compute_predictions(raster = raster, model = isofit$mean_fit,
+                                   list_var = list(predVar = TRUE, cov = TRUE),
+                                   long_candidates = NULL,
+                                   lat_candidates = NULL,
+                                   long_calibs = calibfit$calib_fit$data$long,
+                                   lat_calibs = calibfit$calib_fit$data$lat,
+                                   verbose = verbose)
+      browser()
+      #var4 <- var4a * var4b %*% var4c ## crashes
+      } else {
+        warning("A full computation of the variance of the statistic for the assignment test requires to provide both the structural raster and the isofit as input of the function isofind.")
+      }
+
+            ## we create individual rasters containing the variance of the test statistics
       list_varstat_layers <- sapply(1:nrow(data),
                                     function(i) {
-                                      isoscape$isoscapes$mean_predVar + 
-                                      calibfit$phi/calibfit$param["slope"]^2 +
-                                      fixedVar[i]/calibfit$param["slope"]^2 +
-                                      0 ## ToDo compute fourth variance term
+                                      var1 + var2 + var3[i] + var4 ##  how to handle var4 will depend on its dimension
                                     }
                                     )
     } else {
