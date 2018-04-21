@@ -208,7 +208,7 @@ plot.ISOSCAPE <- function(x,
     }
 
     if (which == "disp_respVar") {
-      stop("This variance term can no longer be plotted due to some change in IsoriX internal structure. It will come back in a future version of IsoriX. Let us know if you need it.")
+      stop("This variance term is no longer computed due to some change in IsoriX internal structure. It may come back in a future version of IsoriX if you need it. Just let us know!")
     }
     
     ## compute the colors
