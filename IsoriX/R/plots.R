@@ -192,9 +192,23 @@ plot.ISOSCAPE <- function(x,
       stop("argument 'which' unknown")
       }
     }
+    
 
+    if (which == "mean_respVar") {
+      x$isoscapes[["mean_respVar"]] <- x$isoscapes[["mean_predVar"]] + x$isoscapes[["mean_residVar"]]
+    }
+    
+    if (which == "disp_residVar") {
+      x$isoscapes[["disp_residVar"]] <- raster::raster(x$isoscapes[["mean"]])
+      raster::values(x$isoscapes[["disp_residVar"]]) <- 2
+    }
+
+    if (which == "disp_respVar") {
+      stop("This variance term can no longer be plotted due to some change in IsoriX internal structure. It will come back in a future version of IsoriX. Let us know if you need it.")
+    }
+    
     ## compute the colors
-    colours <- .cut_and_color(var     = x$isoscape[[which]], #@data@values,
+    colours <- .cut_and_color(var     = x$isoscapes[[which]], #@data@values,
                            step     = palette$step,
                            range    = palette$range,
                            palette  = palette$fn,
@@ -212,8 +226,8 @@ plot.ISOSCAPE <- function(x,
     ##  allows for the evaluation of arguments.
     ##  (the stars are used to remove spaces)
     
-    map <- rasterVis::levelplot(x$isoscape[[which]],
-                                maxpixels = prod(dim(x$isoscape[[which]])[1:2]),
+    map <- rasterVis::levelplot(x$isoscapes[[which]],
+                                maxpixels = prod(dim(x$isoscapes[[which]])[1:2]),
                                 margin = FALSE,
                                 col.regions = colours$all_cols,
                                 at = colours$at,
@@ -245,7 +259,7 @@ plot.ISOSCAPE <- function(x,
 
     ## build the 3D-Sphere
     if (sphere$build) {
-      .build_sphere(x$isoscape[[which]], colours = colours, decor = decor)
+      .build_sphere(x$isoscapes[[which]], colours = colours, decor = decor)
       if (!sphere$keep_image) {
         file.remove("IsoriX_world_image.png")
       }
