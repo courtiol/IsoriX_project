@@ -6,8 +6,8 @@
 \alias{summary.ISOFIND}
 \title{Infer spatial origins}
 \usage{
-isofind(data, isoscape, calibfit = NULL, mask = NA,
-  verbose = interactive())
+isofind(data, isoscape, calibfit = NULL, isofit = NULL, raster = NULL,
+  mask = NA, verbose = interactive())
 }
 \arguments{
 \item{data}{A \var{dataframe} containing the assignment data (see
@@ -18,6 +18,13 @@ note below)}
 \item{calibfit}{The output of the function \code{\link{calibfit}} (This 
 argument is not needed if the isoscape had been fitted using isotopic 
 ratios from sedentary animals.)}
+
+\item{isofit}{The output of the function \code{\link{isofit}} (This 
+argument is needed to compute the covariance of predictions between the
+calibration locations and the candidate locations of the assignment.)}
+
+\item{raster}{The structural raster (\var{RasterLayer}) such as an elevation
+raster created using \code{\link{prepelev}}}
 
 \item{mask}{A \var{SpatialPolygons} of a mask to replace values on all
 rasters by NA inside polygons (see details)}
@@ -57,6 +64,9 @@ dataframe \code{data}. The function also performs a single assignment for the
 entire group by combining the p-value maps of all samples using the Fisher's
 method (Fisher 1925). Significant p-values are strong evidence that the
 sample do NOT come from the candidate location (and not the opposite!).
+
+If \code{isofit} and \code{raster} are not provided, the variance of the test 
+statistic will omit the computation of a covariance term.
 
 A mask can be used so to remove all values falling in the mask. This can be
 useful for performing for example assignments on lands only and discard
@@ -102,6 +112,8 @@ AssignmentDry <- isofind(data = AssignDataAlien,
 Assignment <- isofind(data = AssignDataAlien,
                       isoscape = GermanScape,
                       calibfit = CalibAlien,
+                      isofit = GermanFit,
+                      raster = ElevRasterDE,
                       mask = NULL)
 
 ## We plot the group assignment

@@ -4,7 +4,9 @@
 \alias{compute_predictions}
 \title{Compute predictions}
 \usage{
-compute_predictions(raster, model, list_var, verbose = TRUE)
+compute_predictions(raster, model, list_var, long_candidates = NULL,
+  lat_candidates = NULL, long_calibs = NULL, lat_calibs = NULL,
+  verbose = TRUE)
 }
 \arguments{
 \item{raster}{The structural raster (\var{RasterLayer}) such as an elevation
@@ -13,6 +15,14 @@ raster created using \code{\link{prepelev}}}
 \item{model}{The model to use for the prediction}
 
 \item{list_var}{The argument for the input \code{variances} of \code{\link[spaMM]{predict.HLfit}}}
+
+\item{long_candidates}{The longitudes for which to compute the prediction (all those in raster if NULL)}
+
+\item{lat_candidates}{The latitudes for which to compute the prediction (all those in raster if NULL)}
+
+\item{long_calibs}{The longitudes of the calibration locations (for computing a specific covariance)}
+
+\item{lat_calibs}{The latitudes of the calibration locations (for computing a specific covariance)}
 
 \item{verbose}{A \var{logical} indicating whether information about the
 progress of the procedure should be displayed or not while the function is
@@ -57,6 +67,12 @@ disp_pred <- compute_predictions(raster = ElevRasterDE,
                                  list_var = list(respVar = TRUE))
                                 
 lapply(disp_pred, head)
+
+cov <- compute_predictions(raster = ElevRasterDE,
+                           model = GermanFit$mean_fit,
+                           list_var = list(predVar = TRUE, cov = TRUE),
+                           long_calibs = unique(CalibDataAlien$long)[1:10],
+                           lat_calibs = unique(CalibDataAlien$lat)[1:10])
 }
 
 
