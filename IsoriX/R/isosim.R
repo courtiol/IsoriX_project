@@ -78,10 +78,10 @@
 #' set.seed(123)
 #' Newdat <- Simu$data[sample(1:nrow(Simu$data), 50), ]
 #' 
-#' NewdatFit <- isofit(data = Newdat,
+#' Isofit <- isofit(data = Newdat,
 #'                     mean_model_fix = list(elev = TRUE, lat_abs = TRUE))
 #' 
-#' Isoscape <- isoscape(ElevRasterDE, NewdatFit)
+#' Isoscape <- isoscape(ElevRasterDE, Isofit)
 #' 
 #' PlotMeanFitted <- plot(x = Isoscape, which = "mean", sources = list(draw = FALSE))
 #' 
@@ -115,17 +115,17 @@
 #'         lambda_matern_source_ID = 0,
 #'         lambda_matern_disp = 5),
 #'     fitted = c(
-#'         intercept = isoscapemodel$mean.fit$fixef[1],
-#'         lat_abs = isoscapemodel$mean.fit$fixef[2], 
-#'         elev = isoscapemodel$mean.fit$fixef[3],
-#'         nu = isoscapemodel$mean.fit$ranFix$corrPars[[1]]$nu,
-#'         rho = isoscapemodel$mean.fit$ranFix$corrPars[[1]]$rho,
-#'         rho_div_nu = with(isoscapemodel$mean.fit$ranFix$corrPars[[1]],rho/nu),
-#'         lambda_matern = isoscapemodel$mean.fit$lambda,
-#'         intercept_disp = isoscapemodel$disp.fit$fixef[1],
-#'         nu_disp = isoscapemodel$disp.fit$ranFix$corrPars[[1]]$nu,
-#'         rho_disp = isoscapemodel$disp.fit$ranFix$corrPars[[1]]$rho,
-#'         lambda_matern_disp = isoscapemodel$disp.fit$lambda)), 4)
+#'         intercept = Isofit$mean_fit$fixef[1],
+#'         lat_abs = Isofit$mean_fit$fixef[2], 
+#'         elev = Isofit$mean_fit$fixef[3],
+#'         nu = Isofit$mean_fit$ranFix$corrPars[[1]]$nu,
+#'         rho = Isofit$mean_fit$ranFix$corrPars[[1]]$rho,
+#'         rho_div_nu = with(Isofit$mean_fit$ranFix$corrPars[[1]], rho/nu),
+#'         lambda_matern = Isofit$mean_fit$lambda,
+#'         intercept_disp = Isofit$disp_fit$fixef[1],
+#'         nu_disp = Isofit$disp_fit$ranFix$corrPars[[1]]$nu,
+#'         rho_disp = Isofit$disp_fit$ranFix$corrPars[[1]]$rho,
+#'         lambda_matern_disp = Isofit$disp_fit$lambda)), 4)
 #' 
 #' }
 #' 
