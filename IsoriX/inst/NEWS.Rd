@@ -21,8 +21,8 @@
       \item arguments xlab and ylab for the plotting function for calibration fits
       \item new method points for plotting more than one calibration fit
       \item the plotting function for assignments can now show the location of the assignment samples
-      \item new internal function .compute_predictions
-      \item new internal function .info_package
+      \item new internal function compute_predictions
+      \item new internal function info_package
     }
   }
   
@@ -58,8 +58,8 @@
       \item the function .objective_fn_calib has been moved within the function calibfit as it is not used elsewhere
       \item the function calibfit as been prepared for a possible activation of a random effect for species ID in the future. But whether it would make sense or not remains to be determined.
       \item the function .Fisher_method now directly computes the exponential of the log pv if only one value is provided; this leads to much faster assignment in the case of a single observation
-      \item a new internal function called .compute_predictions now computes the predictions for other functions
-      \item a new internal function called .info_package provides some information about the amount of code and functions in the package
+      \item a new internal function called compute_predictions now computes the predictions for other functions
+      \item a new internal function called info_package provides some information about the amount of code and functions in the package
     }
   }
   

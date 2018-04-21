@@ -149,19 +149,19 @@ be displayed or not. The element \code{title} is a string or a call used to
 define the rest of the title. By default it draws the delta value for
 hydrogen. Check the syntax of this default before trying to modify it.
 
-The arguments \code{cutoff}, \code{sources}, \code{calibs}, \code{assigns}, \code{borders},
-\code{mask}, and \code{mask2} are used to fine-tune additional layers that
-can be added to the main plot to embellish it. These arguments must be lists
-that provide details on how to draw, respectively, the area outside the
-prediction interval (for assignment plots), the locations of sources (for
-both isoscape and assignment plots), the locations of the calibration
-samples (for assignment plots), the locations of the assignment
-samples (for assignment plots), the borders (for both types of plots),
-and the mask (again, for both). For assignment maps, an extra mask can be
-used (mask2), as one may want to add a mask covering the area outside the
-biological range of the species. Within these lists, the elements \code{lwd},
-\code{col}, \code{cex}, \code{pch} and \code{fill} influences their
-respective objects as in traditional R plotting functions (see
+The arguments \code{cutoff}, \code{sources}, \code{calibs}, \code{assigns},
+\code{borders}, \code{mask}, and \code{mask2} are used to fine-tune
+additional layers that can be added to the main plot to embellish it. These
+arguments must be lists that provide details on how to draw, respectively,
+the area outside the prediction interval (for assignment plots), the
+locations of sources (for both isoscape and assignment plots), the locations
+of the calibration samples (for assignment plots), the locations of the
+assignment samples (for assignment plots), the borders (for both types of
+plots), and the mask (again, for both). For assignment maps, an extra mask
+can be used (mask2), as one may want to add a mask covering the area outside
+the biological range of the species. Within these lists, the elements
+\code{lwd}, \code{col}, \code{cex}, \code{pch} and \code{fill} influences
+their respective objects as in traditional R plotting functions (see
 \code{\link{par}} for details). The element \code{draw} should be a
 \var{logical} that indicates whether the layer must be created or not. The
 argument \code{borders} (within the list borders) expects an object of the
