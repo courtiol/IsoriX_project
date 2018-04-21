@@ -14,6 +14,8 @@
                         "\n Type:",
                         "\n    * citation('IsoriX') for information on how to cite IsoriX.",
                         "\n    * browseURL('https://bookdown.org/content/782/') for the documentation.",
+                        "\n    * browseURL('https://github.com/courtiol/IsoriX/') for the GitHub repository of the package.",
+                        "\n    * browseURL('https://github.com/courtiol/IsoriX/issues/') for bug reports and feature requests.",
                         "\n    * ?IsoriX for a short description.",
                         "\n    * news(package = 'IsoriX') for news.",
                         "\n"
@@ -197,6 +199,12 @@
 #' number of functions only gives the number of exported functions, and the
 #' number of lines of code no longer includes documentation and examples. This
 #' function is for development purpose only and is thus not exported.
+#'
+#' @export
+#' @return This function returns nothing.
+#' 
+#' @examples 
+#' info_package()
 #'
 info_package <- function() {
   print(paste("number of functions =", length(ls("package:IsoriX"))))
