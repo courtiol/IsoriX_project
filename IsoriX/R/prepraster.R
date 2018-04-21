@@ -204,7 +204,7 @@ prepraster <- function(raster,
       }
     }
     if (aggregation_factor > 1) {  ## test if aggregation is needed
-      if (interactive()) {
+      if (verbose) {
         print(paste("aggregating..."))
       }
       raster <- raster::aggregate(raster, fact = aggregation_factor, fun = aggregation_fn)  ## aggregation

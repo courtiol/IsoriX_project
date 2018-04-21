@@ -153,7 +153,7 @@ isoscape <- function(raster, ## change as method?
                       length(long_to_do)))
     
     ## a logical indicating if a progression bar must be used
-    draw_pb <- interactive() & (length(steps) - 1) > 2
+    draw_pb <- verbose & (length(steps) - 1) > 2
     
     ## create empty vectors to store predictions
     mean_pred <- disp_pred <- rep(NA, length(long_to_do))

@@ -263,7 +263,7 @@ isosim <- function(data,
   out$isoscapes <- raster::brick(list("mean" = mean_raster,
                                       "disp" = disp_raster))
 
-  if (!save_dataframe & interactive()) {
+  if (!save_dataframe & verbose) {
     message(paste("Note: simulated data not saved as data.frame (save_dataframe is set to FALSE). Saving the simulated data as data.frame would require", format(utils::object.size(data), units = "MB")))
   } else {
     out$data <- data
