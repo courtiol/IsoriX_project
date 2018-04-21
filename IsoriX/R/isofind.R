@@ -205,6 +205,7 @@ calibfit!")
                                     )
     } else {
       ## we create individual rasters containing the variance of the test statistics
+      isoscape$isoscapes[["mean_respVar"]] <- isoscape$isoscapes[["mean_predVar"]] + isoscape$isoscapes[["mean_residVar"]]
       list_varstat_layers <- sapply(1:nrow(data),
                                     function(i) {
                                       isoscape$isoscapes$mean_respVar
