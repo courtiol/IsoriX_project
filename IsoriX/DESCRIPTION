@@ -37,6 +37,7 @@ Suggests:
     magick,
     maps,
     maptools,
+    R.utils,
     RandomFields,
     rgeos,
     rgl,
