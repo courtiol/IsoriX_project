@@ -30,6 +30,7 @@
     \itemize{
       \item many objects have been renamed to prepare the release of the version 1.0
       \item the vignettes have now been rewriten as a bookdown and moved out from the package. To access the documentation you should now visit: \url{https://bookdown.org/content/782/}
+      \item the variance of the test assignment can now be computed more accuratly. It is now possible to include the prediction covariance between the mean model predictions at the candidate locations and the mean model predictions at the calibration locations. This term was until now neglected in IsoriX and as far as we know, it is neglected by anyone else.
     }
   }
   
